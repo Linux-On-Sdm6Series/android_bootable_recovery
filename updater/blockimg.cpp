@@ -1501,6 +1501,7 @@ static int PerformCommandErase(CommandParameters& params) {
 
       if (ioctl(params.fd, BLKDISCARD, &blocks) == -1) {
         PLOG(ERROR) << "BLKDISCARD ioctl failed";
+        LOG(ERROR) << "BLKDISCARD ioctl failed at [" << blocks[0] << ", " << blocks[1] << ")";
         return -1;
       }
     }
