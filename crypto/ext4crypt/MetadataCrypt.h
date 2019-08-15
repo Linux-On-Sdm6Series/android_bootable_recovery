@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2007 The Android Open Source Project
+ * Copyright (C) 2016 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,25 +14,12 @@
  * limitations under the License.
  */
 
-#ifndef MTDUTILS_MOUNTS_H_
-#define MTDUTILS_MOUNTS_H_
+#ifndef _METADATA_CRYPT_H
+#define _METADATA_CRYPT_H
 
-typedef struct {
- const char *device;
- const char *mount_point;
- const char *filesystem;
- const char *flags;
-} MountedVolume;
+#include <string>
+__BEGIN_DECLS
+bool e4crypt_mount_metadata_encrypted(const std::string& mount_point, bool needs_encrypt, const std::string& key_dir, const std::string& blk_device, std::string* crypto_blkdev);
+__END_DECLS
 
-int scan_mounted_volumes(void);
-
-const MountedVolume *find_mounted_volume_by_device(const char *device);
-
-const MountedVolume *
-find_mounted_volume_by_mount_point(const char *mount_point);
-
-int unmount_mounted_volume(const MountedVolume *volume);
-
-int remount_read_only(const MountedVolume* volume);
-
-#endif  // MTDUTILS_MOUNTS_H_
+#endif
