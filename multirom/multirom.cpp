@@ -14,6 +14,7 @@
 #include <string>
 #include <vector>
 #include <sstream>
+#include <cmath>
 
 // clone libbootimg to /system/extras/ from
 // https://github.com/Tasssadar/libbootimg.git
@@ -58,6 +59,8 @@ extern "C" {
 
 #include "../libblkid/include/blkid.h"
 #include "cp_xattrs/libcp_xattrs.h"
+
+#define MR_USE_ZERO_AS_ERASE 1
 
 std::string MultiROM::m_path = "";
 std::string MultiROM::m_boot_dev = "";
@@ -1430,6 +1433,8 @@ bool MultiROM::createFakeVendorImg(bool needs_vendor)
 
 #define MR_UPDATE_SCRIPT_PATH  "META-INF/com/google/android/"
 #define MR_UPDATE_SCRIPT_NAME  "META-INF/com/google/android/updater-script"
+#define MR_SYS_TRANS_LST_NAME  "system.transfer.list"
+#define MR_VND_TRANS_LST_NAME  "vendor.transfer.list"
 
 bool MultiROM::installFromFastbootImg(std::string rom, std::string file)
 {
@@ -1508,7 +1513,6 @@ bool MultiROM::flashZip(std::string rom, std::string file)
 #ifdef MR_DEVICE_HAS_VENDOR_PARTITION
 	dp_keep_busy[3] = opendir("/vendor");
 #endif
-
 	DataManager::SetValue(TW_SIGNED_ZIP_VERIFY_VAR, 0);
 	status = TWinstall_zip(file.c_str(), &wipe_cache);
 	DataManager::SetValue(TW_SIGNED_ZIP_VERIFY_VAR, verify_status);
@@ -1549,16 +1553,17 @@ exit:
 	// not really needed blankTimer.resetTimerAndUnblank();
 
 	system("rm -r " MR_UPDATE_SCRIPT_PATH);
-	if(file == "/tmp/mr_update.zip")
+	if(file == "/tmp/mr_update.zip"){
+		//system("cp /tmp/mr_update.zip /realdata/media/0/");
 		system("rm /tmp/mr_update.zip");
-
+	}
 	if(status != INSTALL_SUCCESS)
 		gui_print("Failed to install ZIP!\n");
 	else
 		gui_print("ZIP successfully installed\n");
 
 	restoreBootPartition();
-	restoreMounts();
+	restoreMounts(); //EDITFLAG
 
 	sideloaded = DataManager::GetIntValue("tw_mrom_sideloaded");
 	DataManager::SetValue("tw_mrom_sideloaded", 0);
@@ -1828,11 +1833,43 @@ bool MultiROM::prepareZIP(std::string& file, EdifyHacker *hacker, bool& restore_
 	}
 	else
 		gui_print("No need to change ZIP.\n");
-
+	
+#ifdef MR_USE_ZERO_AS_ERASE
+	gui_print("Start to convert zero to erase in system.transfer.list...");
+	if(system_args("unzip %s \"%s\" -d /tmp", file.c_str(), MR_SYS_TRANS_LST_NAME) != 0){
+		gui_print("Failed to extract system.transfer.list. Or file does not exist\n");
+	} else {
+		if(system_args("sed -i \'s/erase/zero/g\' /tmp/%s", MR_SYS_TRANS_LST_NAME) != 0){
+			gui_print("Failed to convert system.transfer.list.\n");
+			goto exit;
+		}
+		if(system_args("cd /tmp && zip -u %s %s", file.c_str(), MR_SYS_TRANS_LST_NAME) != 0){
+			gui_print("Failed to update zip.\n");
+			goto exit;
+		}
+	}
+	gui_print("Start to convert zero to erase in vendor.transfer.list...");
+	if(system_args("unzip %s \"%s\" -d /tmp", file.c_str(), MR_VND_TRANS_LST_NAME) != 0){
+		gui_print("Failed to extract vender.transfer.list. Or file does not exist\n");
+	} else {
+		if(system_args("sed -i \'s/erase/zero/g\' /tmp/%s", MR_VND_TRANS_LST_NAME) != 0){
+			gui_print("Failed to convert vender.transfer.list.\n");
+			goto exit;
+		}
+		if(system_args("cd /tmp && zip -u %s %s", file.c_str(), MR_VND_TRANS_LST_NAME) != 0){
+			gui_print("Failed to update zip.\n");
+			goto exit;
+		}
+	}
+#endif	
+	
 	return true;
 
 exit:
 	free(script_data);
+#ifdef MR_USE_ZERO_AS_ERASE
+	system_args("rm /tmp/%s", MR_SYS_TRANS_LST_NAME);
+#endif
 #ifdef USE_MINZIP
 	mzCloseZipArchive(&zip);
 	sysReleaseMap(&map);
@@ -2122,7 +2159,8 @@ std::string MultiROM::getNewRomName(std::string zip, std::string def)
 
 bool MultiROM::createImage(const std::string& base, const char *img, int size)
 {
-	gui_print("Creating %s.img...\n", img);
+	//gui_print("Creating %s.img...\n", img);
+	//EDIT SIGN
 
 	if(size <= 0)
 	{
@@ -2144,6 +2182,7 @@ bool MultiROM::createImage(const std::string& base, const char *img, int size)
 	}
 
 	LOGINFO("Creating image with cmd: %s\n", cmd);
+	gui_print("Creating image with cmd: %s\n", cmd);
 	return system(cmd) == 0;
 }
 
@@ -2186,10 +2225,12 @@ bool MultiROM::createSparseImage(const std::string& base, const char *img)
 	gui_print("Creating %s.sparse.img...\n", img);
 
 	int max_size_MB = 0;
+	int max_size_KB = 0;
 	std::string path = "/"; path += img;
 	TWPartition *part = PartitionManager.Find_Partition_By_Path(path);
 	if (part) {
 		max_size_MB = part->GetSizeRaw() / 1024 / 1024;
+		max_size_KB = std::ceil(part->GetSizeRaw() / 1024);
 		if(max_size_MB <= 0) {
 			gui_print("Failed to create %s image: invalid size (%dMB)\n", img, max_size_MB);
 			return false;
@@ -2216,9 +2257,11 @@ bool MultiROM::createSparseImage(const std::string& base, const char *img)
 		 !strcmp(img, "system") ||
 		 !strcmp(img, "vendor") ||
 		 !strcmp(img, "cache"))) {
-		snprintf(cmd, sizeof(cmd), "make_ext4fs -l %dM -a \"/%s\" -S %s \"%s/%s.sparse.img\"", max_size_MB, img, file_contexts, base.c_str(), img);
+		//snprintf(cmd, sizeof(cmd), "make_ext4fs -l %dM -a \"/%s\" -S %s \"%s/%s.sparse.img\"", max_size_MB, img, file_contexts, base.c_str(), img);
+		snprintf(cmd, sizeof(cmd), "make_ext4fs -l %dK -a \"/%s\" -S %s \"%s/%s.sparse.img\"", max_size_KB, img, file_contexts, base.c_str(), img);
 	} else {
-		snprintf(cmd, sizeof(cmd), "make_ext4fs -l %dM \"%s/%s.img\"", max_size_MB, base.c_str(), img);
+		//snprintf(cmd, sizeof(cmd), "make_ext4fs -l %dM \"%s/%s.img\"", max_size_MB, base.c_str(), img);
+		snprintf(cmd, sizeof(cmd), "make_ext4fs -l %dK \"%s/%s.img\"", max_size_KB, base.c_str(), img);
 	}
 
 	LOGINFO("Creating sparse image with cmd: %s\n", cmd);
@@ -3031,6 +3074,8 @@ bool MultiROM::mountBaseImages(std::string base, std::string& dest)
 		if(system(cmd) != 0)
 		{
 			gui_print("Failed to mount image %s image!\n", itr->first.c_str());
+			//EDIT SIGN
+			gui_print("MOUNT COMMAND:%s, RETURNS:%s\n", cmd, system(cmd));
 			return false;
 		}
 	}
@@ -3860,7 +3905,7 @@ std::string MultiROM::getRecoveryVersion()
 std::string MultiROM::Create_LoopDevice(const std::string& ImageFile)
 {
 	std::string LoopDevice;
-	char dev_path[64];
+	char dev_path[256];
 	int device_fd = -1;
 	int file_fd = -1;
 	int loop_num;
@@ -3902,35 +3947,46 @@ std::string MultiROM::Create_LoopDevice(const std::string& ImageFile)
 		}
 	}
 
-	if (loop_num == MAX_LOOP_NUM) {
+	if (loop_num >= MAX_LOOP_NUM) {
 		LOGINFO("Failed to find suitable loop device number!\n");
 		goto createLoopDevice_exit;
 	}
 
 	LOGINFO("Create_loop_device: loop_num = %d\n", loop_num);
+	//gui_print("Create_loop_device: loop_num = %d for %s\n", loop_num, ImageFile.c_str());
 
-	if (mknod(dev_path, S_IFBLK | 0777, makedev(7, loop_num)) < 0) {
+	//char cmd[256];	
+	//sprintf(cmd, "mknod -m 0777 /dev/block/loop%d b 7 %d", loop_num, loop_num);
+	//if (!system(cmd)) {
+	if (mknod(dev_path, S_IFBLK | 0777, makedev(7, 8 * loop_num)) < 0) {
 		if (errno != EEXIST) {
 			LOGINFO("Failed to create loop file (%d: %s)\n", errno, strerror(errno));
+			//gui_print("Failed to create loop file (%d: %s)\n", errno, strerror(errno));
 			goto createLoopDevice_exit;
-		} else
+		} else {
 			LOGINFO("Loop file %s already exists, using it.\n", dev_path);
+			//gui_print("Loop file %s already exists, using it.\n", dev_path);
+		}
 	}
-
+	
+	//char* debug_ret = system("ls /dev/block | grep \"loop\"\n");
 	device_fd = open(dev_path, O_RDWR | O_CLOEXEC);
 	if (device_fd < 0) {
 		LOGINFO("Failed to open loop file (%d: %s)\n", errno, strerror(errno));
+		//gui_print("Failed to open loop file at %s (%d: %s)\n", dev_path, errno, strerror(errno));
 		goto createLoopDevice_exit;
 	}
 
 	memset(&lo_info, 0, sizeof(lo_info));
 	if (ioctl(device_fd, LOOP_GET_STATUS64, &lo_info) < 0 && errno != ENXIO) {
 		LOGINFO("ioctl LOOP_GET_STATUS64 failed on %s (%d: %s)\n", dev_path, errno, strerror(errno));
+		//gui_print("ioctl LOOP_GET_STATUS64 failed on %s (%d: %s)\n", dev_path, errno, strerror(errno));
 		goto createLoopDevice_exit;
 	}
 
 	if (ioctl(device_fd, LOOP_SET_FD, file_fd) < 0) {
 		LOGINFO("ioctl LOOP_SET_FD failed on %s (%d: %s)\n", dev_path, errno, strerror(errno));
+		gui_print("ioctl LOOP_SET_FD failed on %s (%d: %s)\n", dev_path, errno, strerror(errno));
 		goto createLoopDevice_exit;
 	}
 
@@ -3943,6 +3999,7 @@ std::string MultiROM::Create_LoopDevice(const std::string& ImageFile)
 
 	if (ioctl(device_fd, LOOP_SET_STATUS64, &lo_info) < 0) {
 		LOGINFO("ioctl LOOP_SET_STATUS64 failed on %s (%d: %s)\n", dev_path, errno, strerror(errno));
+		//gui_print("ioctl LOOP_SET_STATUS64 failed on %s (%d: %s)\n", dev_path, errno, strerror(errno));
 		goto createLoopDevice_exit;
 	}
 
@@ -3964,11 +4021,13 @@ bool MultiROM::Release_LoopDevice(const std::string& LoopDevice, bool DeleteNode
 	device_fd = open(LoopDevice.c_str(), O_RDWR | O_CLOEXEC);
 	if (device_fd < 0) {
 		LOGINFO("Failed to open loop file (%d: %s)\n", errno, strerror(errno));
+		//gui_print("Failed to open loop file (%d: %s) to clean\n", errno, strerror(errno));
 		return false;
 	}
 
 	if (ioctl(device_fd, LOOP_CLR_FD) < 0) {
 		LOGINFO("ioctl LOOP_CLR_FD failed on %s (%d: %s)\n", LoopDevice.c_str(), errno, strerror(errno));
+		//gui_print("Failed to open loop file (%d: %s)\n to clean", errno, strerror(errno));
 		close(device_fd);
 		return false;
 	}

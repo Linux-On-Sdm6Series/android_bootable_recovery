@@ -522,7 +522,7 @@ bool MROMInstaller::runScripts(const std::string& dir, const std::string& base, 
 
 	if(!hasEntry(dir))
 	{
-		LOGI("Skippping scripts in %s, not in the ZIP\n", dir.c_str());
+		LOGI("Skipping scripts in %s, not in the ZIP\n", dir.c_str());
 		return true;
 	}
 
@@ -557,7 +557,7 @@ bool MROMInstaller::extractTarballs(const std::string& base)
 
 	if(!hasEntry("rom"))
 	{
-		gui_print("Skippping tarball extractions - no rom folder in the ZIP file\n");
+		gui_print("Skipping tarball extractions - no rom folder in the ZIP file\n");
 		return true;
 	}
 
