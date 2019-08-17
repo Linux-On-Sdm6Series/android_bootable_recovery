@@ -164,7 +164,7 @@ public:
 	static bool erase(std::string name);
 	static bool restorecon(std::string name);
 
-	static bool installFromFastbootImg(std::string rom, std::string file);
+    	static bool installFromFastbootImg(std::string rom, std::string file);
 	static bool installVendorFromFastbootImg(std::string rom, std::string file);
 	static bool flashZip(std::string rom, std::string file);
 	static bool flashORSZip(std::string file, int *wipe_cache);

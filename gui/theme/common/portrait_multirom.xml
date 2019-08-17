@@ -689,6 +689,14 @@
 				<placement x="%indent%" y="%row10a_y%"/>
 				<text>%tw_file%</text>
 			</text>
+			
+			<!-- MODIFIED BY ART1st -->
+			<checkbox>
+				<condition var1="mr_rom_is_zip" var2="1"/>
+				<placement x="%indent%" y="%row12_y%"/>
+				<text>Skip zip compatibility verify</text>
+				<data variable="tw_multirom_skip_comp_verify"/>
+		    </checkbox>
 
 			<!-- MODIFIED BY ART1st -->
 			<checkbox>
