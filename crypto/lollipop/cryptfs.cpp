@@ -44,6 +44,7 @@
 #include "cutils/properties.h"
 extern "C" {
 #include "crypto_scrypt.h"
+#include "log.h"
 }
 
 #ifdef USE_LEGACY_KEYMASTER
@@ -95,6 +96,9 @@ extern "C" {
 #define RETRY_MOUNT_ATTEMPTS 10
 #define RETRY_MOUNT_DELAY_SECONDS 1
 #define DEFAULT_HEX_PASSWORD "64656661756c745f70617373776f7264"
+
+#undef printf
+#define printf INFO
 
 bool Using_hex_password = false;
 
@@ -1599,7 +1603,7 @@ static int test_mount_encrypted_fs(struct crypt_mnt_ftr* crypt_ftr,
   }
 #endif
 
-#ifndef CONFIG_HW_DISK_ENCRYPTION
+#ifdef CONFIG_HW_DISK_ENCRYPTION
   /* Work out if the problem is the password or the data */
   unsigned char scrypted_intermediate_key[sizeof(crypt_ftr->
                                                  scrypted_intermediate_key)];
@@ -1639,6 +1643,7 @@ static int test_mount_encrypted_fs(struct crypt_mnt_ftr* crypt_ftr,
 
     /* Save the name of the crypto block device
      * so we can mount it when restarting the framework. */
+      printf("crypto_blkdev %s\n", crypto_blkdev);
     property_set("ro.crypto.fs_crypto_blkdev", crypto_blkdev);
 
     // TWRP shouldn't change the stored key
@@ -1656,6 +1661,7 @@ int check_unmounted_and_get_ftr(struct crypt_mnt_ftr* crypt_ftr)
 {
     char encrypted_state[PROPERTY_VALUE_MAX];
     property_get("ro.crypto.state", encrypted_state, "");
+    printf("ro.crypto.state=%s master_key_saved %d\n", encrypted_state, master_key_saved);
     if ( master_key_saved || strcmp(encrypted_state, "encrypted") ) {
         printf("encrypted fs already validated or not running with encryption,"
               " aborting\n");
@@ -1711,6 +1717,7 @@ int cryptfs_check_passwd(char *passwd)
             free(hex_passwd);
         }
     }
+    printf("final rc %d\n", rc);
     return rc;
 }
 

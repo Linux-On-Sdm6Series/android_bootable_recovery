@@ -5,7 +5,7 @@ include $(CLEAR_VARS)
 LOCAL_MODULE := libcryptfslollipop
 LOCAL_MODULE_TAGS := eng optional
 LOCAL_CFLAGS :=
-LOCAL_SRC_FILES = cryptfs.cpp
+LOCAL_SRC_FILES = cryptfs.cpp klog.c
 LOCAL_SHARED_LIBRARIES := libselinux libc libc++ libsoftkeymaster libbase libcrypto libcutils libkeymaster_messages libhardware libprotobuf-cpp-lite
 LOCAL_C_INCLUDES := external/scrypt/lib/crypto system/security/keystore hardware/libhardware/include/hardware system/security/softkeymaster/include/keymaster system/keymaster/include external/openssl/include $(commands_recovery_local_path)
 
