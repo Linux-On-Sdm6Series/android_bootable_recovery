@@ -203,6 +203,7 @@ bool Keymaster::isSecure() {
 
 using namespace ::android::vold;
 
+/*
 int keymaster_compatibility_cryptfs_scrypt() {
     Keymaster dev;
     if (!dev) {
@@ -211,6 +212,7 @@ int keymaster_compatibility_cryptfs_scrypt() {
     }
     return dev.isSecure();
 }
+*/
 
 int keymaster_create_key_for_cryptfs_scrypt(uint32_t rsa_key_size,
                                             uint64_t rsa_exponent,
@@ -259,7 +261,7 @@ int keymaster_create_key_for_cryptfs_scrypt(uint32_t rsa_key_size,
 
     std::copy(key.data(), key.data() + key.size(), key_buffer);
     return 0;
-}
+}*/
 
 int keymaster_sign_object_for_cryptfs_scrypt(const uint8_t* key_blob,
                                              size_t key_blob_size,
@@ -310,6 +312,7 @@ int keymaster_sign_object_for_cryptfs_scrypt(const uint8_t* key_blob,
             }
 
             if (key_buffer_size < newKey.size()) {
+                LOG(ERROR) << "key buffer size is too small";
                 return -1;
             }
 
