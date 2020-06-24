@@ -901,6 +901,7 @@ void DataManager::SetDefaultValues()
 
 	// doesn't seem to be used but add it back anyway
 	mConst.SetValue("tw_device_name", TARGET_DEVICE);
+	// mPersist.SetValue("mr_use_zero_as_erase", "0"); //EDIT FLAG
 
 #ifdef TW_MROM_REC_VERSION_STR
 	// mrom build version needed by splash (parse it just like in multirom.cpp)
@@ -928,6 +929,8 @@ void DataManager::SetDefaultValues()
 
 	mPersist.SetValue(TW_AUTO_INJECT_MROM, "0");
 	mPersist.SetValue("tw_multirom_type_SparseSystem", "1");
+
+	mPersist.SetValue("tw_multirom_skip_comp_verify", "1");
 
 	mConst.SetValue("tw_is_multirom", "1");
 #else

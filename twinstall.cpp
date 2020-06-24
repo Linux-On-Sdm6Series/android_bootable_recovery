@@ -343,7 +343,7 @@ static int Run_Update_Binary(const char *path, ZipWrap *Zip, int* wipe_cache, zi
 	return INSTALL_SUCCESS;
 }
 
-int TWinstall_zip(const char* path, int* wipe_cache) {
+int TWinstall_zip(const char* path, int* wipe_cache, int mr_skip_comp_verify) {
 	int ret_val, zip_verify = 1;
 	if (strcmp(path, "error") == 0) {
 		LOGERR("Failed to get adb sideload file: '%s'\n", path);
@@ -418,7 +418,7 @@ int TWinstall_zip(const char* path, int* wipe_cache) {
 	if (Zip.EntryExists(ASSUMED_UPDATE_BINARY_NAME)) {
 		LOGINFO("Update binary zip\n");
 		// Additionally verify the compatibility of the package.
-		if (!verify_package_compatibility(&Zip)) {
+		if (mr_skip_comp_verify == 0 && !verify_package_compatibility(&Zip)) {
 			if (DataManager::GetIntValue("is_gui_mode")) gui_err("zip_compatible_err=Zip Treble compatibility error!");
 			Zip.Close();
 #ifdef USE_MINZIP

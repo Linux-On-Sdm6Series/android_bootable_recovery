@@ -391,6 +391,7 @@
 				<text>{@install_zip_btn=Install Zip}</text>
 				<actions>
 					<action function="set">tw_mrom_flash_action=multirom_flash_zip</action>
+					<action function="set">tw_mrom_rom_is_zip=1</action>
 					<action function="page">multirom_flash_select</action>
 				</actions>
 			</button>
@@ -444,6 +445,28 @@
 			</button>
 
 			<button style="main_button_half_height">
+				<condition var1="tw_multirom_is_android" var2="1"/>
+				<placement x="%center_x%" y="%row17a_y%"/>
+				<text>Install System.img</text>
+				<actions>
+					<action function="set">tw_mrom_flash_action=multirom_flash_system_img</action>
+					<action function="set">tw_mrom_rom_is_zip=0</action>
+					<action function="page">multirom_flash_select</action>
+				</actions>
+			</button>
+
+			<button style="main_button_half_height">
+				<condition var1="tw_multirom_is_android" var2="1"/>
+				<placement x="%indent%" y="%row20a_y%"/>
+				<text>Install Vendor.img</text>
+				<actions>
+					<action function="set">tw_mrom_flash_action=multirom_flash_vendor_img</action>
+					<action function="set">tw_mrom_rom_is_zip=0</action>
+					<action function="page">multirom_flash_select</action>
+				</actions>
+			</button>
+
+			<button style="main_button_half_height">
 				<condition var1="tw_multirom_is_ubuntu" var2="1"/>
 				<placement x="%center_x%" y="%row20a_y%"/>
 				<text>Disable flash-kernel</text>
@@ -464,7 +487,7 @@
 					<condition var1="tw_multirom_is_android" var2="1"/>
 					<condition var1="tw_multirom_has_bootimg" var2="0"/>
 				</conditions>
-				<placement x="%center_x%" y="%row20a_y%" placement="5"/>
+				<placement x="%center_x%" y="%row22a_y%" placement="5"/>
 				<text>Backup is only available if secondary ROM</text>
 			</text>
 
@@ -473,7 +496,7 @@
 					<condition var1="tw_multirom_is_android" var2="1"/>
 					<condition var1="tw_multirom_has_bootimg" var2="0"/>
 				</conditions>
-				<placement x="%center_x%" y="%row21a_y%" placement="5"/>
+				<placement x="%center_x%" y="%row23a_y%" placement="5"/>
 				<text>does not share the kernel with internal ROM.</text>
 			</text>
 
@@ -575,12 +598,23 @@
 			<template name="sort_options"/>
 
 			<fileselector>
+				<condition var1="tw_mrom_rom_is_zip" var2="1"/>
 				<placement x="%indent%" y="%row3_y%" w="%content_width%" h="%fileselector_install_height%"/>
 				<text>%tw_zip_location%</text>
 				<filter extn=".zip" folders="1" files="1"/>
 				<path name="tw_zip_location" default="/sdcard"/>
 				<data name="tw_filename"/>
 				<selection name="tw_file"/>
+			</fileselector>
+
+			<fileselector>
+				<condition var1="tw_mrom_rom_is_zip" var2="0"/>
+				<placement x="%indent%" y="%row3_y%" w="%content_width%" h="%fileselector_install_height%"/>
+				<text>%tw_zip_location%</text>
+				<filter extn=".img" folders="1" files="1"/>
+				<path name="tw_gsi_location" default="/sdcard"/>
+				<data name="tw_filename"/>
+				<selection name="tw_image_name"/>
 			</fileselector>
 
 			<button style="main_button_half_height">
@@ -655,6 +689,14 @@
 				<placement x="%indent%" y="%row10a_y%"/>
 				<text>%tw_file%</text>
 			</text>
+
+			<!-- MODIFIED BY ART1st -->
+			<checkbox>
+				<condition var1="mr_rom_is_zip" var2="1"/>
+				<placement x="%indent%" y="%row12_y%"/>
+				<text>Skip zip compatibility verify</text>
+				<data variable="tw_multirom_skip_comp_verify"/>
+		    </checkbox>
 
 			<slider>
 				<text>{@swipe_flash=Swipe to confirm Flash}</text>
@@ -739,10 +781,10 @@
 				<listitem name="Enable advanced kernel logging + history">
 					<data variable="tw_multirom_enable_kmsg_logging"/>
 				</listitem>
--				<listitem name="Enable No-KEXEC Workaround">
+				<listitem name="Enable No-KEXEC Workaround">
 					<data variable="tw_multirom_no_kexec"/>
 				</listitem>
--				<listitem name="Boot into secondary without reboot">
+				<listitem name="Boot into secondary without reboot">
 					<data variable="tw_multirom_use_primary_kernel"/>
 				</listitem>
 			</listbox>

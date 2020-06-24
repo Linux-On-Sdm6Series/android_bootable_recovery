@@ -257,6 +257,8 @@ GUIAction::GUIAction(xml_node<>* node)
 		ADD_ACTION(multirom_delete);
 		ADD_ACTION(multirom_flash_zip);
 		ADD_ACTION(multirom_flash_zip_sailfish);
+		ADD_ACTION(multirom_flash_system_img);
+		ADD_ACTION(multirom_flash_vendor_img);
 		ADD_ACTION(multirom_inject);
 		ADD_ACTION(multirom_inject_curr_boot);
 		ADD_ACTION(multirom_add_rom);
@@ -2318,6 +2320,34 @@ int GUIAction::multirom_flash_zip_sailfish(std::string arg __unused)
 
 	operation_end(op_status);
 	return 0;
+}
+
+int GUIAction::multirom_flash_system_img(std::string arg __unused)
+{
+	operation_start("Flashing");
+	int op_status = 0;
+
+	std::string name = DataManager::GetStrValue("tw_multirom_rom_name");
+
+	if (!MultiROM::installFromFastbootImg(name, DataManager::GetStrValue("tw_filename"))){
+		op_status = 1;
+	}
+	operation_end(op_status);
+	return op_status;
+}
+
+int GUIAction::multirom_flash_vendor_img(std::string arg __unused)
+{
+	operation_start("Flashing");
+	int op_status = 0;
+
+	std::string name = DataManager::GetStrValue("tw_multirom_rom_name");
+
+	if (!MultiROM::installVendorFromFastbootImg(name, DataManager::GetStrValue("tw_filename"))){
+		op_status = 1;
+	}
+	operation_end(op_status);
+	return op_status;
 }
 
 int GUIAction::multirom_inject(std::string arg __unused)

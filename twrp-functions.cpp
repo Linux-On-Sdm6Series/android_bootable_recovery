@@ -76,7 +76,7 @@ extern "C" {
 
 
 
-struct selabel_handle *selinux_handle;
+extern struct selabel_handle *selinux_handle;
 
 /* Execute a command */
 int TWFunc::Exec_Cmd(const string& cmd, string &result) {
